@@ -83,7 +83,7 @@ def validar(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
     # 6. Converter e validar VALOR
     def parse_valor(val):
         try:
-            v = float(str(val).replace(",", ".").replace("R$", "").strip())
+            v = float(str(val).replace(".", "").replace(",", ".").replace("R$", "").strip())
             return abs(v)  # garante positivo
         except (ValueError, AttributeError):
             return None
