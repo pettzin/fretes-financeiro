@@ -143,8 +143,13 @@ with col_f1:
     ano_sel = st.selectbox("Filtrar por ano:", ["Todos"] + [str(a) for a in anos])
 
 from calculator import calcular_tudo
+from reporter import gerar_todos 
+
 df_filtrado = df if ano_sel == "Todos" else df[df["ano"] == int(ano_sel)]
 res = calcular_tudo(df_filtrado)
+
+gerar_todos(res)  
+
 t = res["totais"]
 m = res["medias"]
 
