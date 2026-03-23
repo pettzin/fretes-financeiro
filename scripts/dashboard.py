@@ -327,6 +327,7 @@ card(c5, "📆 Média Lucro/Semana", fmt(m["media_lucro_semanal"]),
 # Alertas de despesa
 try:
     sys.path.insert(0, BASE_DIR)
+    sys.path.insert(0, SCRIPTS_DIR)
     from alertas import verificar_alertas
     from datetime import date
     alertas = verificar_alertas(df_filtrado)
