@@ -8,9 +8,28 @@ import pandas as pd
 from datetime import datetime
 
 TIPOS_VALIDOS = {"Receita", "Despesa"}
+
 CATEGORIAS_VALIDAS = {
-    "Frete", "Combustível", "Troca de óleo",
-    "Pedágio", "Manutenção", "Taxa do CNPJ", "Outros"
+    # Receita
+    "Frete",
+    # Despesa — nomes com acento (como aparecem na planilha)
+    "Combustível", "Óleo (KM)", "Troca Óleo Motor",
+    "Pedágio", "Manutenção", "Troca de Pneu",
+    "IPVA", "Multa", "Seguro", "Contador",
+    "Taxa do CNPJ", "Outros",
+    # Compatibilidade com nome antigo
+    "Troca de óleo",
+}
+
+# Migração de nomes antigos para novos
+NORMALIZAR_CATEGORIA = {
+    "Troca de óleo": "Troca Óleo Motor",
+    "Troca de Oleo": "Troca Óleo Motor",
+    "Troca Oleo Motor": "Troca Óleo Motor",
+    "Oleo (KM)": "Óleo (KM)",
+    "Pedagio": "Pedágio",
+    "Manutencao": "Manutenção",
+    "Combustivel": "Combustível",
 }
 
 
@@ -81,6 +100,7 @@ def validar(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         df.dropna(subset=["data"], inplace=True)
 
     # 6. Converter e validar VALOR
+    # SUA CORREÇÃO: remove ponto (milhar) antes de trocar vírgula por ponto decimal
     def parse_valor(val):
         try:
             v = float(str(val).replace(".", "").replace(",", ".").replace("R$", "").strip())
@@ -105,8 +125,9 @@ def validar(df: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
         )
         df = df[~tipos_invalidos]
 
-    # 8. Normalizar CATEGORIA
+    # 8. Normalizar CATEGORIA — migrar nomes antigos e padronizar
     df["categoria"] = df["categoria"].astype(str).str.strip()
+    df["categoria"] = df["categoria"].replace(NORMALIZAR_CATEGORIA)
 
     categorias_desconhecidas = ~df["categoria"].isin(CATEGORIAS_VALIDAS)
     if categorias_desconhecidas.any():
