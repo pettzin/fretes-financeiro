@@ -324,6 +324,29 @@ card(c4, "📅 Média Lucro/Mês", fmt(m["media_lucro_mensal"]),
 card(c5, "📆 Média Lucro/Semana", fmt(m["media_lucro_semanal"]),
      "metric-positivo" if m["media_lucro_semanal"] >= 0 else "metric-negativo")
 
+# Alertas de despesa
+try:
+    sys.path.insert(0, BASE_DIR)
+    from alertas import verificar_alertas
+    from datetime import date
+    alertas = verificar_alertas(df_filtrado)
+    if alertas:
+        st.markdown("### 🚨 Alertas de Despesa")
+        for al in alertas:
+            st.markdown(
+                f"""<div style="background:#FCE4D6;border-left:5px solid #C00000;
+                border-radius:8px;padding:12px 16px;margin-bottom:8px;">
+                <b style="color:#C00000;">⚠️ {al["categoria"]}</b> &nbsp;—&nbsp;
+                Gasto: <b>R$ {al["gasto"]:,.2f}</b> &nbsp;|&nbsp;
+                Limite: <b>R$ {al["limite"]:,.2f}</b> &nbsp;|&nbsp;
+                Excesso: <b>R$ {al["excesso"]:,.2f}</b> ({al["percentual"]}% do limite)
+                </div>""".replace(",","X").replace(".",",").replace("X","."),
+                unsafe_allow_html=True
+            )
+        st.divider()
+except Exception:
+    pass
+
 st.divider()
 
 # Gráficos — gerados direto na nuvem (sem depender de arquivos .png)
