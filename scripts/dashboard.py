@@ -391,7 +391,7 @@ mes_atual = hoje.month
 ano_atual = hoje.year
 
 alertas = verificar_alertas_inline(df_filtrado, mes_atual, ano_atual)
-st.write(f"DEBUG: mes={mes_atual} ano={ano_atual} alertas={len(alertas)} limites={obter_limites()}")
+
 if alertas:
     st.divider()
     st.markdown("### 🚨 Alertas de Despesa")
