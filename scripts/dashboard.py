@@ -2,15 +2,19 @@
 import os
 import sys
 import json
+import warnings
+import logging
 import pandas as pd
 import streamlit as st
 
-# Caminhos — funciona tanto local quanto no Streamlit Cloud
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCRIPTS_DIR = os.path.join(BASE_DIR, "scripts")
-GRAFICOS_DIR = os.path.join(BASE_DIR, "saidas", "graficos")
+warnings.filterwarnings("ignore", ".*categorical.*")
+logging.getLogger("matplotlib").setLevel(logging.ERROR)
+
+BASE_DIR         = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRIPTS_DIR      = os.path.join(BASE_DIR, "scripts")
+GRAFICOS_DIR     = os.path.join(BASE_DIR, "saidas", "graficos")
 CREDENTIALS_FILE = os.path.join(BASE_DIR, "credentials.json")
-PLANILHA_LOCAL = os.path.join(BASE_DIR, "dados", "fretes.xlsx")
+PLANILHA_LOCAL   = os.path.join(BASE_DIR, "dados", "fretes.xlsx")
 
 sys.path.insert(0, SCRIPTS_DIR)
 
@@ -37,10 +41,8 @@ def carregar_do_drive():
         import gspread
         from google.oauth2.service_account import Credentials
 
-        # Streamlit Cloud: lê dos secrets
         if hasattr(st, "secrets") and "gcp_service_account" in st.secrets:
             creds_dict = dict(st.secrets["gcp_service_account"])
-            # Corrigir private_key que pode vir com \\n literal
             if "private_key" in creds_dict:
                 creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
         elif os.path.exists(CREDENTIALS_FILE):
@@ -56,7 +58,6 @@ def carregar_do_drive():
         creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
         gc = gspread.authorize(creds)
 
-        # Tenta abrir a planilha pelo nome
         nome = "fretes"
         if hasattr(st, "secrets") and "nome_planilha" in st.secrets:
             nome = st.secrets["nome_planilha"]
@@ -109,7 +110,159 @@ def carregar_dados():
     return df, avisos, resultados, fonte
 
 
-# Header
+def gerar_graficos_nuvem(resultados):
+    """
+    Gera os 5 gráficos inline com matplotlib — funciona local e na nuvem.
+    Usado quando os arquivos .png não estão disponíveis (Streamlit Cloud).
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+
+    COR_RECEITA  = "#2E75B6"
+    COR_DESPESA  = "#C00000"
+    COR_POSITIVO = "#70AD47"
+    COR_NEGATIVO = "#FF0000"
+    COR_LUCRO    = "#375623"
+    CORES_CAT = [
+        "#2E75B6","#ED7D31","#A9D18E","#FFC000",
+        "#5A9BD5","#FF7F7F","#9DC3E6","#F4B942",
+        "#B8860B","#6495ED","#DC143C","#20B2AA","#9370DB"
+    ]
+
+    df_mensal  = resultados["mensal"]
+    df_semanal = resultados["semanal"]
+    df_cats    = resultados["categorias"]
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "📊 Receita vs Despesa", "📈 Lucro Mensal",
+        "📉 Lucro Semanal", "📋 Evolução Acumulada", "🍕 Categorias",
+    ])
+
+    with tab1:
+        if df_mensal.empty:
+            st.info("Sem dados suficientes.")
+        else:
+            fig, ax = plt.subplots(figsize=(12, 5))
+            x = range(len(df_mensal))
+            w = 0.35
+            ax.bar([i-w/2 for i in x], df_mensal["receita"], w,
+                   label="Receita", color=COR_RECEITA, alpha=0.9)
+            ax.bar([i+w/2 for i in x], df_mensal["despesa"], w,
+                   label="Despesa", color=COR_DESPESA, alpha=0.9)
+            ax.set_title("Receita vs Despesa por Mês", fontsize=13, fontweight="bold")
+            ax.set_xticks(list(x))
+            ax.set_xticklabels(df_mensal["mes_label"], rotation=30, ha="right", fontsize=9)
+            ax.legend(); ax.grid(axis="y", linestyle="--", alpha=0.4)
+            ax.yaxis.set_major_formatter(
+                plt.FuncFormatter(lambda v, _: f"R${v:,.0f}".replace(",",".")))
+            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+
+    with tab2:
+        if df_mensal.empty:
+            st.info("Sem dados suficientes.")
+        else:
+            fig, ax = plt.subplots(figsize=(12, 5))
+            cores = [COR_POSITIVO if v >= 0 else COR_NEGATIVO for v in df_mensal["lucro"]]
+            ax.bar(df_mensal["mes_label"], df_mensal["lucro"], color=cores, alpha=0.9)
+            ax.axhline(0, color="#333", linewidth=0.8)
+            ax.set_title("Lucro por Mês", fontsize=13, fontweight="bold")
+            ax.set_xticks(range(len(df_mensal)))
+            ax.set_xticklabels(df_mensal["mes_label"], rotation=30, ha="right", fontsize=9)
+            ax.grid(axis="y", linestyle="--", alpha=0.4)
+            ax.yaxis.set_major_formatter(
+                plt.FuncFormatter(lambda v, _: f"R${v:,.0f}".replace(",",".")))
+            leg = [mpatches.Patch(color=COR_POSITIVO, label="Positivo"),
+                   mpatches.Patch(color=COR_NEGATIVO, label="Negativo")]
+            ax.legend(handles=leg)
+            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+
+    with tab3:
+        if df_semanal.empty:
+            st.info("Sem dados suficientes.")
+        else:
+            fig, ax = plt.subplots(figsize=(14, 5))
+            cores_p = [COR_POSITIVO if v >= 0 else COR_NEGATIVO for v in df_semanal["lucro"]]
+            ax.plot(df_semanal["ano_semana"], df_semanal["lucro"],
+                    color=COR_LUCRO, linewidth=2, marker="o", markersize=5)
+            ax.scatter(df_semanal["ano_semana"], df_semanal["lucro"],
+                       color=cores_p, zorder=5, s=40)
+            ax.axhline(0, color="#999", linewidth=0.8, linestyle="--")
+            ax.fill_between(df_semanal["ano_semana"], df_semanal["lucro"], 0,
+                            where=(df_semanal["lucro"] >= 0),
+                            alpha=0.12, color=COR_POSITIVO, interpolate=True)
+            ax.fill_between(df_semanal["ano_semana"], df_semanal["lucro"], 0,
+                            where=(df_semanal["lucro"] < 0),
+                            alpha=0.12, color=COR_NEGATIVO, interpolate=True)
+            ax.set_title("Lucro por Semana", fontsize=13, fontweight="bold")
+            step = max(1, len(df_semanal) // 20)
+            ticks = df_semanal["ano_semana"].iloc[::step].tolist()
+            ax.set_xticks(ticks)
+            ax.set_xticklabels(ticks, rotation=45, ha="right", fontsize=8)
+            ax.grid(linestyle="--", alpha=0.35)
+            ax.yaxis.set_major_formatter(
+                plt.FuncFormatter(lambda v, _: f"R${v:,.0f}".replace(",",".")))
+            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+
+    with tab4:
+        if df_mensal.empty:
+            st.info("Sem dados suficientes.")
+        else:
+            fig, ax = plt.subplots(figsize=(12, 5))
+            df_m = df_mensal.copy()
+            df_m["lucro_acum"] = df_m["lucro"].cumsum()
+            ax.plot(df_m["mes_label"], df_m["lucro_acum"],
+                    color=COR_RECEITA, linewidth=2.5, marker="o", markersize=6)
+            ax.fill_between(df_m["mes_label"], df_m["lucro_acum"],
+                            alpha=0.15, color=COR_RECEITA)
+            ax.axhline(0, color="#999", linewidth=0.7, linestyle="--")
+            ax.set_title("Evolução do Lucro Acumulado", fontsize=13, fontweight="bold")
+            ax.set_xticks(range(len(df_m)))
+            ax.set_xticklabels(df_m["mes_label"], rotation=30, ha="right", fontsize=9)
+            ax.grid(linestyle="--", alpha=0.35)
+            ax.yaxis.set_major_formatter(
+                plt.FuncFormatter(lambda v, _: f"R${v:,.0f}".replace(",",".")))
+            ultimo = df_m["lucro_acum"].iloc[-1]
+            ax.annotate(
+                f"Total: R${ultimo:,.2f}".replace(",","."),
+                xy=(df_m["mes_label"].iloc[-1], ultimo),
+                xytext=(-60, 20), textcoords="offset points",
+                fontsize=10, color=COR_LUCRO, fontweight="bold",
+                arrowprops=dict(arrowstyle="->", color=COR_LUCRO, lw=1.5)
+            )
+            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+
+    with tab5:
+        if df_cats.empty:
+            st.info("Sem despesas registradas.")
+        else:
+            fig, (ax_pizza, ax_barra) = plt.subplots(1, 2, figsize=(14, 6))
+            cores = CORES_CAT[:len(df_cats)]
+            wedges, _, autotexts = ax_pizza.pie(
+                df_cats["total"], labels=None, autopct="%1.1f%%",
+                colors=cores, startangle=140, pctdistance=0.78,
+                wedgeprops=dict(linewidth=0.5, edgecolor="white"))
+            for at in autotexts:
+                at.set_fontsize(9)
+            ax_pizza.legend(
+                wedges,
+                [f"{r['categoria']} (R${r['total']:,.0f})".replace(",",".")
+                 for _, r in df_cats.iterrows()],
+                loc="center left", bbox_to_anchor=(-0.3, 0.5), fontsize=8)
+            ax_pizza.set_title("Distribuição de Despesas", fontsize=13, fontweight="bold")
+            ax_barra.barh(df_cats["categoria"], df_cats["total"], color=cores, alpha=0.9)
+            ax_barra.set_title("Valor por Categoria", fontsize=13, fontweight="bold")
+            ax_barra.invert_yaxis()
+            ax_barra.grid(axis="x", linestyle="--", alpha=0.4)
+            ax_barra.xaxis.set_major_formatter(
+                plt.FuncFormatter(lambda v, _: f"R${v:,.0f}".replace(",",".")))
+            fig.suptitle("Análise de Despesas por Categoria",
+                         fontsize=14, fontweight="bold", y=1.01)
+            fig.tight_layout(); st.pyplot(fig); plt.close(fig)
+
+
+# ── Header ────────────────────────────────────────────────────────────────────
 col_titulo, col_btn = st.columns([5, 1])
 with col_titulo:
     st.markdown("## 🚛 Controle Financeiro de Fretes")
@@ -143,13 +296,8 @@ with col_f1:
     ano_sel = st.selectbox("Filtrar por ano:", ["Todos"] + [str(a) for a in anos])
 
 from calculator import calcular_tudo
-from reporter import gerar_todos 
-
 df_filtrado = df if ano_sel == "Todos" else df[df["ano"] == int(ano_sel)]
 res = calcular_tudo(df_filtrado)
-
-gerar_todos(res)  
-
 t = res["totais"]
 m = res["medias"]
 
@@ -178,25 +326,9 @@ card(c5, "📆 Média Lucro/Semana", fmt(m["media_lucro_semanal"]),
 
 st.divider()
 
-# Gráficos
+# Gráficos — gerados direto na nuvem (sem depender de arquivos .png)
 st.markdown("### 📊 Gráficos")
-
-def exibir_grafico(nome, titulo):
-    caminho = os.path.join(GRAFICOS_DIR, nome)
-    if os.path.exists(caminho):
-        st.image(caminho, use_container_width=True)
-    else:
-        st.info(f"Gráfico '{titulo}' ainda não gerado. Execute o sistema no PC.")
-
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📊 Receita vs Despesa", "📈 Lucro Mensal",
-    "📉 Lucro Semanal", "📋 Evolução Acumulada", "🍕 Categorias",
-])
-with tab1: exibir_grafico("01_receita_vs_despesa.png", "Receita vs Despesa")
-with tab2: exibir_grafico("02_lucro_mensal.png", "Lucro Mensal")
-with tab3: exibir_grafico("03_lucro_semanal.png", "Lucro Semanal")
-with tab4: exibir_grafico("04_evolucao_acumulada.png", "Evolucao Acumulada")
-with tab5: exibir_grafico("05_categorias.png", "Categorias")
+gerar_graficos_nuvem(res)
 
 st.divider()
 
