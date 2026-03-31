@@ -400,43 +400,61 @@ try:
 
     col_sa, col_sf = st.columns(2)
 
+    def card_semana(titulo, cor_borda, emoji, ini, fim, dados):
+        cor_lucro = "#375623" if dados["lucro"] >= 0 else "#C00000"
+        return f"""
+        <div style="background:#f0f4fa;border-radius:12px;padding:20px 22px;
+                    border-left:5px solid {cor_borda};margin-bottom:10px;">
+          <div style="font-size:14px;color:#333;font-weight:bold;margin-bottom:2px;">
+            {emoji} {titulo}
+          </div>
+          <div style="font-size:11px;color:#888;margin-bottom:14px;">
+            {ini.strftime("%d/%m/%Y")} a {fim.strftime("%d/%m/%Y")}
+          </div>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="font-size:11px;color:#888;padding-bottom:2px;">Receita bruta</td>
+              <td style="font-size:11px;color:#888;padding-bottom:2px;text-align:right;">Despesas</td>
+            </tr>
+            <tr>
+              <td style="font-size:18px;font-weight:bold;color:#2E75B6;padding-bottom:12px;">
+                {fmt(dados["receitas"])}
+              </td>
+              <td style="font-size:18px;font-weight:bold;color:#C00000;padding-bottom:12px;text-align:right;">
+                {fmt(dados["despesas"])}
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2" style="border-top:1px solid #ddd;padding-top:10px;">
+                <span style="font-size:11px;color:#888;">Lucro liquido</span><br>
+                <span style="font-size:22px;font-weight:bold;color:{cor_lucro};">
+                  {fmt(dados["lucro"])}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2" style="padding-top:10px;background:#e8f4e8;
+                  border-radius:6px;padding:8px 10px;margin-top:8px;">
+                <span style="font-size:11px;color:#555;">Parte de cada socio (50%%)</span><br>
+                <span style="font-size:16px;font-weight:bold;color:#375623;">
+                  {fmt(dados["metade"])}
+                </span>
+              </td>
+            </tr>
+          </table>
+        </div>"""
+
     with col_sa:
         st.markdown(
-            f"""<div style="background:#f0f4fa;border-radius:12px;padding:18px 20px;
-            border-left:5px solid #2E75B6;margin-bottom:10px;">
-            <div style="font-size:13px;color:#555;margin-bottom:6px;">
-            📅 <b>Semana atual</b> &nbsp;
-            <span style="font-size:11px;">({ini_atual.strftime('%d/%m')} a {fim_atual.strftime('%d/%m')})</span>
-            </div>
-            <div style="display:flex;gap:24px;flex-wrap:wrap;">
-              <span style="font-size:13px;">Receitas: <b style="color:#2E75B6;">{fmt(sem_atual['receitas'])}</b></span>
-              <span style="font-size:13px;">Despesas: <b style="color:#C00000;">{fmt(sem_atual['despesas'])}</b></span>
-              <span style="font-size:13px;">Lucro: <b style="color:{'#375623' if sem_atual['lucro']>=0 else '#C00000'};font-size:16px;">{fmt(sem_atual['lucro'])}</b></span>
-            </div>
-            <div style="margin-top:8px;font-size:12px;color:#555;">
-              Parte de cada socio: <b>{fmt(sem_atual['metade'])}</b>
-            </div>
-            </div>""",
+            card_semana("Semana em andamento", "#2E75B6", "📅",
+                        ini_atual, fim_atual, sem_atual),
             unsafe_allow_html=True
         )
 
     with col_sf:
         st.markdown(
-            f"""<div style="background:#f0f4fa;border-radius:12px;padding:18px 20px;
-            border-left:5px solid #375623;margin-bottom:10px;">
-            <div style="font-size:13px;color:#555;margin-bottom:6px;">
-            ✅ <b>Ultima semana fechada</b> &nbsp;
-            <span style="font-size:11px;">({ini_ant.strftime('%d/%m')} a {fim_ant.strftime('%d/%m')})</span>
-            </div>
-            <div style="display:flex;gap:24px;flex-wrap:wrap;">
-              <span style="font-size:13px;">Receitas: <b style="color:#2E75B6;">{fmt(sem_ant['receitas'])}</b></span>
-              <span style="font-size:13px;">Despesas: <b style="color:#C00000;">{fmt(sem_ant['despesas'])}</b></span>
-              <span style="font-size:13px;">Lucro: <b style="color:{'#375623' if sem_ant['lucro']>=0 else '#C00000'};font-size:16px;">{fmt(sem_ant['lucro'])}</b></span>
-            </div>
-            <div style="margin-top:8px;font-size:12px;color:#555;">
-              Parte de cada socio: <b>{fmt(sem_ant['metade'])}</b>
-            </div>
-            </div>""",
+            card_semana("Ultima semana fechada", "#375623", "✅",
+                        ini_ant, fim_ant, sem_ant),
             unsafe_allow_html=True
         )
 except Exception as e:
