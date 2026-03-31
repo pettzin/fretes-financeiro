@@ -159,7 +159,7 @@ def gerar_pdf_semanal(df: pd.DataFrame, inicio: date, fim: date) -> str:
 
     tab_divisao = [
         ["",         "Valor"],
-        ["Cada socio recebe", fmt(dados["metade"])],
+        ["Cada socio recebe (1/3)", fmt(dados["metade"])],
     ]
 
     tab2 = Table(tab_divisao, colWidths=[8*cm, 5*cm])
