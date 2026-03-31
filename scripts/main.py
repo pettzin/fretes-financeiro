@@ -184,9 +184,27 @@ def main():
     except Exception as e:
         log.warning(f"Erro ao gerar gráficos (não crítico): {e}")
 
+    # 6. Relatório mensal (só no dia 1 de cada mês)
+    try:
+        from relatorio import verificar_e_gerar as gerar_mensal
+        pdf = gerar_mensal(df)
+        if pdf:
+            log.info(f'Relatorio mensal gerado: {os.path.basename(pdf)}')
+    except Exception as e:
+        log.warning(f'Erro ao gerar relatorio mensal (nao critico): {e}')
+
+    # 6b. Relatório semanal (só aos domingos)
+    try:
+        from semana import verificar_e_gerar as gerar_semanal
+        pdf_sem = gerar_semanal(df)
+        if pdf_sem:
+            log.info(f'Relatorio semanal gerado: {os.path.basename(pdf_sem)}')
+    except Exception as e:
+        log.warning(f'Erro ao gerar relatorio semanal (nao critico): {e}')
+
     limpar_logs_antigos()
 
-    # 6. Dashboard (somente se não for chamado pelo watcher)
+    # 7. Dashboard (somente se não for chamado pelo watcher)
     if not ABRIR_DASHBOARD:
         log.info("Processamento automático concluído. Dashboard será atualizado.")
         sys.exit(0)
