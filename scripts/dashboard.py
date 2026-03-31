@@ -435,7 +435,7 @@ try:
             <tr>
               <td colspan="2" style="padding-top:10px;background:#e8f4e8;
                   border-radius:6px;padding:8px 10px;margin-top:8px;">
-                <span style="font-size:11px;color:#555;">Parte de cada socio (50%)</span><br>
+                <span style="font-size:11px;color:#555;">Parte de cada socio (33%)</span><br>
                 <span style="font-size:16px;font-weight:bold;color:#375623;">
                   {fmt(dados["metade"])}
                 </span>
