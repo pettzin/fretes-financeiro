@@ -69,7 +69,7 @@ def calcular_semana(df: pd.DataFrame, inicio: date, fim: date) -> dict:
         "receitas": round(receitas, 2),
         "despesas": round(despesas, 2),
         "lucro":    round(lucro, 2),
-        "metade":   round(lucro / 2, 2),
+        "metade":   round(lucro / 3, 2),
         "lancamentos": len(df_periodo),
     }
 
