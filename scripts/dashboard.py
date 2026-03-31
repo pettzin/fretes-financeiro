@@ -385,13 +385,74 @@ card(c4, "📅 Media Lucro/Mes", fmt(m["media_lucro_mensal"]),
 card(c5, "📆 Media Lucro/Semana", fmt(m["media_lucro_semanal"]),
      "metric-positivo" if m["media_lucro_semanal"] >= 0 else "metric-negativo")
 
-# Alertas — verificados inline, sem depender de arquivo externo
-hoje = date.today()
-mes_atual = hoje.month
-ano_atual = hoje.year
+# Cards semanais
+st.divider()
+st.markdown("### 📅 Semana em Andamento e Última Semana")
 
-alertas = verificar_alertas_inline(df_filtrado, mes_atual, ano_atual)
+try:
+    sys.path.insert(0, SCRIPTS_DIR)
+    from semana import calcular_semana, intervalo_semana_atual, intervalo_semana_anterior
 
+    ini_atual, fim_atual   = intervalo_semana_atual()
+    ini_ant,   fim_ant     = intervalo_semana_anterior()
+    sem_atual = calcular_semana(df, ini_atual, fim_atual)
+    sem_ant   = calcular_semana(df, ini_ant,   fim_ant)
+
+    col_sa, col_sf = st.columns(2)
+
+    with col_sa:
+        st.markdown(
+            f"""<div style="background:#f0f4fa;border-radius:12px;padding:18px 20px;
+            border-left:5px solid #2E75B6;margin-bottom:10px;">
+            <div style="font-size:13px;color:#555;margin-bottom:6px;">
+            📅 <b>Semana atual</b> &nbsp;
+            <span style="font-size:11px;">({ini_atual.strftime('%d/%m')} a {fim_atual.strftime('%d/%m')})</span>
+            </div>
+            <div style="display:flex;gap:24px;flex-wrap:wrap;">
+              <span style="font-size:13px;">Receitas: <b style="color:#2E75B6;">{fmt(sem_atual['receitas'])}</b></span>
+              <span style="font-size:13px;">Despesas: <b style="color:#C00000;">{fmt(sem_atual['despesas'])}</b></span>
+              <span style="font-size:13px;">Lucro: <b style="color:{'#375623' if sem_atual['lucro']>=0 else '#C00000'};font-size:16px;">{fmt(sem_atual['lucro'])}</b></span>
+            </div>
+            <div style="margin-top:8px;font-size:12px;color:#555;">
+              Parte de cada socio: <b>{fmt(sem_atual['metade'])}</b>
+            </div>
+            </div>""",
+            unsafe_allow_html=True
+        )
+
+    with col_sf:
+        st.markdown(
+            f"""<div style="background:#f0f4fa;border-radius:12px;padding:18px 20px;
+            border-left:5px solid #375623;margin-bottom:10px;">
+            <div style="font-size:13px;color:#555;margin-bottom:6px;">
+            ✅ <b>Ultima semana fechada</b> &nbsp;
+            <span style="font-size:11px;">({ini_ant.strftime('%d/%m')} a {fim_ant.strftime('%d/%m')})</span>
+            </div>
+            <div style="display:flex;gap:24px;flex-wrap:wrap;">
+              <span style="font-size:13px;">Receitas: <b style="color:#2E75B6;">{fmt(sem_ant['receitas'])}</b></span>
+              <span style="font-size:13px;">Despesas: <b style="color:#C00000;">{fmt(sem_ant['despesas'])}</b></span>
+              <span style="font-size:13px;">Lucro: <b style="color:{'#375623' if sem_ant['lucro']>=0 else '#C00000'};font-size:16px;">{fmt(sem_ant['lucro'])}</b></span>
+            </div>
+            <div style="margin-top:8px;font-size:12px;color:#555;">
+              Parte de cada socio: <b>{fmt(sem_ant['metade'])}</b>
+            </div>
+            </div>""",
+            unsafe_allow_html=True
+        )
+except Exception as e:
+    st.info(f"Dados semanais indisponiveis: {e}")
+
+# Alertas — verifica o mes mais recente com dados no periodo filtrado
+if not df_filtrado.empty:
+    ultimo = df_filtrado.sort_values('data').iloc[-1]
+    mes_verificar = int(ultimo['mes'])
+    ano_verificar = int(ultimo['ano'])
+else:
+    hoje = date.today()
+    mes_verificar = hoje.month
+    ano_verificar = hoje.year
+
+alertas = verificar_alertas_inline(df_filtrado, mes_verificar, ano_verificar)
 if alertas:
     st.divider()
     st.markdown("### 🚨 Alertas de Despesa")
