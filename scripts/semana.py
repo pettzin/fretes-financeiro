@@ -69,7 +69,7 @@ def calcular_semana(df: pd.DataFrame, inicio: date, fim: date) -> dict:
         "receitas": round(receitas, 2),
         "despesas": round(despesas, 2),
         "lucro":    round(lucro, 2),
-        "metade":   round(lucro / 2, 2),
+        "metade":   round(lucro / 3, 2),
         "lancamentos": len(df_periodo),
     }
 
@@ -152,10 +152,10 @@ def gerar_pdf_semanal(df: pd.DataFrame, inicio: date, fim: date) -> str:
     story.append(tab)
     story.append(Spacer(1, 0.8*cm))
 
-    # Divisao 50/50
+    # Divisao 33/33
     story.append(HRFlowable(width="100%", thickness=0.5, color=colors.lightgrey))
     story.append(Spacer(1, 0.4*cm))
-    story.append(Paragraph("Divisao 50/50 sobre o Lucro", secao))
+    story.append(Paragraph("Divisao 33/33 sobre o Lucro", secao))
 
     tab_divisao = [
         ["",         "Valor"],
