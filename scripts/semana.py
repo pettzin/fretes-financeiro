@@ -56,7 +56,9 @@ def intervalo_semana_anterior() -> tuple[date, date]:
 
 def calcular_semana(df: pd.DataFrame, inicio: date, fim: date) -> dict:
     """Calcula receitas, despesas e lucro de um periodo."""
-    mask = (df["data"].dt.date >= inicio) & (df["data"].dt.date <= fim)
+    # Converte a coluna de data para .dt.date de forma segura
+    datas_convertidas = pd.to_datetime(df["data"]).dt.date
+    mask = (datas_convertidas >= inicio) & (datas_convertidas <= fim)
     df_periodo = df[mask]
 
     receitas = df_periodo.loc[df_periodo["tipo"] == "Receita", "valor"].sum()
