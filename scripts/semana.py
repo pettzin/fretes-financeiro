@@ -55,11 +55,16 @@ def intervalo_semana_anterior() -> tuple[date, date]:
 
 
 def calcular_semana(df: pd.DataFrame, inicio: date, fim: date) -> dict:
-    """Calcula receitas, despesas e lucro de um periodo."""
-    # Converte a coluna de data para .dt.date de forma segura
-    datas_convertidas = pd.to_datetime(df["data"]).dt.date
-    mask = (datas_convertidas >= inicio) & (datas_convertidas <= fim)
-    df_periodo = df[mask]
+    """Calcula receitas, despesas e lucro de um periodo com filtro rigoroso de datas."""
+    if df.empty or "data" not in df.columns:
+        return {"inicio": inicio, "fim": fim, "receitas": 0.0, "despesas": 0.0, "lucro": 0.0, "metade": 0.0, "lancamentos": 0}
+
+    # Assegura que a coluna data é tratada como datetime e extrai apenas a parte da data
+    datas_dt = pd.to_datetime(df["data"], errors="coerce")
+    
+    # Filtro estrito por intervalo de datas ( >= inicio e <= fim )
+    mask = (datas_dt.dt.date >= inicio) & (datas_dt.dt.date <= fim)
+    df_periodo = df[mask].copy()
 
     receitas = df_periodo.loc[df_periodo["tipo"] == "Receita", "valor"].sum()
     despesas = df_periodo.loc[df_periodo["tipo"] == "Despesa", "valor"].sum()
@@ -68,10 +73,10 @@ def calcular_semana(df: pd.DataFrame, inicio: date, fim: date) -> dict:
     return {
         "inicio":   inicio,
         "fim":      fim,
-        "receitas": round(receitas, 2),
-        "despesas": round(despesas, 2),
-        "lucro":    round(lucro, 2),
-        "metade":   round(lucro / 3, 2),
+        "receitas": round(float(receitas), 2),
+        "despesas": round(float(despesas), 2),
+        "lucro":    round(float(lucro), 2),
+        "metade":   round(float(lucro / 3), 2),
         "lancamentos": len(df_periodo),
     }
 
