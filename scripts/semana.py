@@ -55,15 +55,15 @@ def intervalo_semana_anterior() -> tuple[date, date]:
 
 
 def calcular_semana(df: pd.DataFrame, inicio: date, fim: date) -> dict:
-    """Calcula receitas, despesas e lucro de um periodo com filtro rigoroso de datas."""
+    """Calcula receitas, despesas e lucro de um periodo filtrando estritamente pelas datas."""
     if df.empty or "data" not in df.columns:
         return {"inicio": inicio, "fim": fim, "receitas": 0.0, "despesas": 0.0, "lucro": 0.0, "metade": 0.0, "lancamentos": 0}
 
-    # Assegura que a coluna data é tratada como datetime e extrai apenas a parte da data
-    datas_dt = pd.to_datetime(df["data"], errors="coerce")
+    # Converte e padroniza a coluna data para o tipo date
+    datas_dt = pd.to_datetime(df["data"], errors="coerce").dt.date
     
-    # Filtro estrito por intervalo de datas ( >= inicio e <= fim )
-    mask = (datas_dt.dt.date >= inicio) & (datas_dt.dt.date <= fim)
+    # Aplica o filtro estrito do intervalo da semana
+    mask = (datas_dt >= inicio) & (datas_dt <= fim)
     df_periodo = df[mask].copy()
 
     receitas = df_periodo.loc[df_periodo["tipo"] == "Receita", "valor"].sum()
