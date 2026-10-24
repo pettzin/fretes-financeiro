@@ -59,11 +59,16 @@ def calcular_semana(df: pd.DataFrame, inicio: date, fim: date) -> dict:
     if df.empty or "data" not in df.columns:
         return {"inicio": inicio, "fim": fim, "receitas": 0.0, "despesas": 0.0, "lucro": 0.0, "metade": 0.0, "lancamentos": 0}
 
-    # Converte e padroniza a coluna data para o tipo date
-    datas_dt = pd.to_datetime(df["data"], errors="coerce").dt.date
+    # Garante a conversao correta sem importar a ordem dos dias/meses
+    s_data = df["data"]
+    if not pd.api.types.is_datetime64_any_dtype(s_data):
+        s_data = pd.to_datetime(s_data, dayfirst=True, errors="coerce")
     
-    # Aplica o filtro estrito do intervalo da semana
-    mask = (datas_dt >= inicio) & (datas_dt <= fim)
+    # Extrai estritamente o tipo date do Python
+    datas_convertidas = s_data.dt.date
+
+    # Filtro estrito: apenas datas entre inicio e fim
+    mask = (datas_convertidas >= inicio) & (datas_convertidas <= fim)
     df_periodo = df[mask].copy()
 
     receitas = df_periodo.loc[df_periodo["tipo"] == "Receita", "valor"].sum()
