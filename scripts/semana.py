@@ -59,17 +59,16 @@ def calcular_semana(df: pd.DataFrame, inicio: date, fim: date) -> dict:
     if df.empty or "data" not in df.columns:
         return {"inicio": inicio, "fim": fim, "receitas": 0.0, "despesas": 0.0, "lucro": 0.0, "metade": 0.0, "lancamentos": 0}
 
-    # Garante a conversao correta sem importar a ordem dos dias/meses
-    s_data = df["data"]
-    if not pd.api.types.is_datetime64_any_dtype(s_data):
-        s_data = pd.to_datetime(s_data, dayfirst=True, errors="coerce")
+    # Cria uma cópia para evitar modificar o df original e garante formato datetime
+    df_aux = df.copy()
     
-    # Extrai estritamente o tipo date do Python
-    datas_convertidas = s_data.dt.date
+    # Se a coluna de data não estiver como datetime, converte explicitamente
+    if not pd.api.types.is_datetime64_any_dtype(df_aux["data"]):
+        df_aux["data"] = pd.to_datetime(df_aux["data"], dayfirst=True, errors="coerce")
 
-    # Filtro estrito: apenas datas entre inicio e fim
-    mask = (datas_convertidas >= inicio) & (datas_convertidas <= fim)
-    df_periodo = df[mask].copy()
+    # Filtra rigorosamente usando o intervalo .dt.date
+    mask = (df_aux["data"].dt.date >= inicio) & (df_aux["data"].dt.date <= fim)
+    df_periodo = df_aux[mask]
 
     receitas = df_periodo.loc[df_periodo["tipo"] == "Receita", "valor"].sum()
     despesas = df_periodo.loc[df_periodo["tipo"] == "Despesa", "valor"].sum()
